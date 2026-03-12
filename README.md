@@ -43,7 +43,7 @@
 建议在本地使用虚拟环境：
 
 ```bash
-cd flask_app
+cd your_app
 python3 -m venv .venv
 source .venv/bin/activate  # Windows 使用: .venv\Scripts\activate
 pip install -r requirements.txt
