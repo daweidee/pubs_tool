@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}上传文件到 Amazon S3{% endblock %}
+{% block extra_css %}
+      .upload-panel .upload-row {
+        display: flex;
+        gap: var(--space-md);
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .upload-panel .file-input {
+        flex: 1;
+        min-width: 200px;
+        padding: var(--space-sm) var(--space-md);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        background: var(--color-surface-elevated);
+        color: var(--color-text);
+        font-size: 0.9rem;
+      }
+      .upload-panel .file-input:focus {
+        outline: none;
+        border-color: var(--color-primary);
+      }
+      .upload-panel .upload-btn {
+        flex-shrink: 0;
+      }
+      .upload-hint {
+        margin-top: var(--space-sm);
+        font-size: 0.85rem;
+        color: var(--color-text-muted);
+      }
+      .upload-result {
+        margin-top: var(--space-md);
+        padding: var(--space-md);
+        font-size: 0.9rem;
+        line-height: 1.6;
+        color: var(--color-text);
+        word-break: break-all;
+        border-radius: var(--radius-sm);
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+      }
+      .upload-result:empty { display: none; }
+      .upload-result a {
+        color: var(--color-primary);
+        text-decoration: none;
+      }
+      .upload-result a:hover { text-decoration: underline; }
+      @media (max-width: 480px) {
+        .upload-panel .upload-row { flex-direction: column; align-items: stretch; }
+        .upload-panel .file-input { min-width: 0; }
+      }
+{% endblock %}
+{% block content %}
+      <header class="page-head">
+        <h1>📤 上传文件到 Amazon S3</h1>
+        <p class="subtitle">选择文件后上传，成功后返回对象 Key 与临时下载链接</p>
+      </header>
+
+      <div class="card upload-panel">
+        <div class="upload-row">
+          <input type="file" class="file-input" id="s3FileInput" />
+          <button type="button" class="btn-primary upload-btn" id="uploadBtn" onclick="uploadToS3()">上传到 S3</button>
+        </div>
+        <div class="upload-hint" id="fileHint">未选择文件</div>
+        <div class="upload-result" id="uploadResult"></div>
+      </div>
+{% endblock %}
+{% block scripts %}
+    <script>
+      (function() {
+        var fileInput = document.getElementById('s3FileInput');
+        var fileHint = document.getElementById('fileHint');
+        fileInput.addEventListener('change', function() {
+          var f = fileInput.files && fileInput.files[0];
+          fileHint.textContent = f ? '已选：' + f.name + '（' + (f.size || 0) + ' 字节）' : '未选择文件';
+        });
+      })();
+
+      async function uploadToS3() {
+        var fileInput = document.getElementById('s3FileInput');
+        var btn = document.getElementById('uploadBtn');
+        var result = document.getElementById('uploadResult');
+        var file = fileInput.files && fileInput.files[0];
+
+        if (!file) {
+          result.textContent = '请先选择要上传的文件';
+          result.style.display = 'block';
+          return;
+        }
+
+        btn.disabled = true;
+        result.style.display = 'block';
+        result.textContent = '上传中…';
+
+        try {
+          var formData = new FormData();
+          formData.append('file', file);
+
+          var resp = await fetch('/api/upload-s3', { method: 'POST', body: formData });
+          var data = await resp.json();
+
+          if (!resp.ok || !data.success) {
+            result.innerHTML = '✗ ' + (data && data.error ? data.error : '上传失败');
+            return;
+          }
+
+          var linkHtml = data.presigned_url
+            ? '<br><a href="' + data.presigned_url + '" target="_blank" rel="noopener noreferrer">临时下载链接</a>'
+            : '';
+          result.innerHTML = '✓ 上传成功<br>Bucket: <strong>' + (data.bucket || '') + '</strong><br>Key: <strong>' + (data.key || '') + '</strong>' + linkHtml;
+        } catch (e) {
+          result.textContent = '✗ 请求失败：' + (e && e.message ? e.message : String(e));
+        } finally {
+          btn.disabled = false;
+        }
+      }
+    </script>
+{% endblock %}

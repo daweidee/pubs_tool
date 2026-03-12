@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
+
+# 本地私密配置：不要提交真实凭证
+config/credentials_local.py
+
+# 常见本地环境文件
+.env
+.env.*
+

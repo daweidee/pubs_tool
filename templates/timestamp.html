@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% block title %}时间戳转换{% endblock %}
+{% block extra_css %}
+  .page { max-width: 1200px; }
+  .page-head { text-align: left; }
+  .page-head .subtitle { margin-top: var(--space-xs); }
+  .ts-page .card { padding: var(--space-lg); }
+  .now-row, .conv-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+  }
+  .conv-row:last-of-type { margin-bottom: 0; }
+  .now-row .now-ts {
+    font-family: ui-monospace, "Cascadia Code", monospace;
+    font-weight: 600;
+    color: var(--color-primary);
+    min-width: 140px;
+  }
+  .conv-row .label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text);
+    min-width: 4em;
+    flex-shrink: 0;
+  }
+  .conv-row .input, .conv-row .input-ro {
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    background: var(--color-surface-elevated);
+    color: var(--color-text);
+    min-width: 0;
+  }
+  .conv-row .input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+  .conv-row .input-ro {
+    background: var(--color-bg);
+    min-width: 180px;
+    flex: 1;
+    max-width: 240px;
+  }
+  .conv-row .input.ts-in { min-width: 140px; max-width: 200px; flex: 0 1 auto; }
+  .conv-row .input.dt-in { min-width: 180px; flex: 1; max-width: 260px; }
+  .conv-row .tz-label {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+  }
+  .conv-row .btn-ghost {
+    padding: var(--space-sm) var(--space-md);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    background: var(--color-surface-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .conv-row .btn-ghost:hover {
+    background: var(--color-border);
+    color: var(--color-text);
+  }
+  .conv-row .btn-convert {
+    padding: var(--space-sm) var(--space-md);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: white;
+    background: var(--color-primary);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s;
+  }
+  .conv-row .btn-convert:hover {
+    background: var(--color-primary-hover);
+    transform: translateY(-1px);
+  }
+  .conv-row select.unit {
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    background: var(--color-surface-elevated);
+    color: var(--color-text);
+    min-width: 100px;
+  }
+  .feedback { margin-top: var(--space-md); }
+  @media (max-width: 720px) {
+    .conv-row .input-ro { max-width: none; }
+    .conv-row .input.dt-in { max-width: none; }
+  }
+{% endblock %}
+
+{% block content %}
+  <header class="page-head">
+    <h1>⏱️ 时间戳转换</h1>
+    <p class="subtitle">时间戳 ↔ 标准时间（默认当前时间）</p>
+  </header>
+
+  <div class="card ts-page">
+    <div class="now-row">
+      <span class="label">现在:</span>
+      <span class="now-ts" id="nowTs">-</span>
+      <button type="button" class="btn-ghost" id="nowStop">停止</button>
+      <button type="button" class="btn-ghost" id="nowCopy">复制</button>
+    </div>
+
+    <div class="conv-row">
+      <span class="label">时间戳</span>
+      <input type="text" class="input ts-in" id="tsInput" inputmode="numeric" placeholder="毫秒/秒" />
+      <button type="button" class="btn-ghost" onclick="copyTs()">复制</button>
+      <select class="unit" id="tsUnit">
+        <option value="ms" selected>毫秒(ms)</option>
+        <option value="s">秒(s)</option>
+      </select>
+      <button type="button" class="btn-convert" onclick="convertTsToDate()">转换&gt;</button>
+      <input type="text" class="input-ro" id="dateOutput" readonly placeholder="标准时间" />
+      <span class="tz-label" id="tzLabel">北京时间</span>
+      <button type="button" class="btn-ghost" onclick="copyDateOut()">复制</button>
+    </div>
+
+    <div class="conv-row">
+      <span class="label">时间</span>
+      <input type="text" class="input dt-in" id="dateInput" placeholder="YYYY-MM-DD HH:MM:SS" />
+      <span class="tz-label">北京时间</span>
+      <button type="button" class="btn-ghost" onclick="copyDateIn()">复制</button>
+      <button type="button" class="btn-convert" onclick="convertDateToTs()">转换&gt;</button>
+      <input type="text" class="input-ro" id="tsOutput" readonly placeholder="时间戳" />
+      <select class="unit" id="tsUnitOut">
+        <option value="s" selected>秒(s)</option>
+        <option value="ms">毫秒(ms)</option>
+      </select>
+      <button type="button" class="btn-ghost" onclick="copyTsOut()">复制</button>
+    </div>
+
+    <div class="feedback success" id="successMessage">✓ 已复制到剪贴板</div>
+    <div class="feedback error" id="errorMessage">✗ 错误信息</div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    function showError(message) {
+      var el = document.getElementById('errorMessage');
+      el.textContent = '✗ ' + message;
+      el.classList.add('show');
+      setTimeout(function() { el.classList.remove('show'); }, 3500);
+    }
+    function showSuccess(message) {
+      var el = document.getElementById('successMessage');
+      el.textContent = '✓ ' + (message || '已复制到剪贴板');
+      el.classList.add('show');
+      setTimeout(function() { el.classList.remove('show'); }, 2000);
+    }
+    function normNumberString(s) {
+      return String(s || '').trim().replace(/[, ]+/g, '');
+    }
+    function pad2(n) { return String(n).padStart(2, '0'); }
+    function formatLocalText(d) {
+      return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) +
+        ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+    }
+    function parseLocalText(s) {
+      var t = String(s || '').trim();
+      if (!t) return null;
+      var m = t.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+      if (!m) return null;
+      var d = new Date(
+        parseInt(m[1], 10),
+        parseInt(m[2], 10) - 1,
+        parseInt(m[3], 10),
+        m[4] ? parseInt(m[4], 10) : 0,
+        m[5] ? parseInt(m[5], 10) : 0,
+        m[6] ? parseInt(m[6], 10) : 0,
+        0
+      );
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    var nowTimer = null;
+    function updateNow() {
+      var ms = Date.now();
+      document.getElementById('nowTs').textContent = String(ms);
+    }
+    function stopNow() {
+      if (nowTimer) clearInterval(nowTimer);
+      nowTimer = null;
+      document.getElementById('nowStop').textContent = '开始';
+      document.getElementById('nowStop').onclick = startNow;
+    }
+    function startNow() {
+      updateNow();
+      nowTimer = setInterval(updateNow, 100);
+      document.getElementById('nowStop').textContent = '停止';
+      document.getElementById('nowStop').onclick = stopNow;
+    }
+    document.getElementById('nowCopy').onclick = function() {
+      var t = document.getElementById('nowTs').textContent;
+      if (t === '-') return;
+      navigator.clipboard.writeText(t).then(function() { showSuccess('已复制'); }).catch(function() { showError('复制失败'); });
+    };
+
+    function copyTs() {
+      var v = document.getElementById('tsInput').value.trim();
+      if (!v) return;
+      navigator.clipboard.writeText(v).then(function() { showSuccess('已复制'); }).catch(function() { showError('复制失败'); });
+    }
+    function copyDateOut() {
+      var v = document.getElementById('dateOutput').value.trim();
+      if (!v) return;
+      navigator.clipboard.writeText(v).then(function() { showSuccess('已复制'); }).catch(function() { showError('复制失败'); });
+    }
+    function copyDateIn() {
+      var v = document.getElementById('dateInput').value.trim();
+      if (!v) return;
+      navigator.clipboard.writeText(v).then(function() { showSuccess('已复制'); }).catch(function() { showError('复制失败'); });
+    }
+    function copyTsOut() {
+      var v = document.getElementById('tsOutput').value.trim();
+      if (!v) return;
+      navigator.clipboard.writeText(v).then(function() { showSuccess('已复制'); }).catch(function() { showError('复制失败'); });
+    }
+
+    function convertTsToDate() {
+      var raw = normNumberString(document.getElementById('tsInput').value);
+      if (!raw) { showError('请输入时间戳'); return; }
+      if (!/^-?\d+$/.test(raw)) { showError('时间戳必须是整数'); return; }
+      var unit = document.getElementById('tsUnit').value;
+      var n = Number(raw);
+      if (!Number.isFinite(n)) { showError('时间戳数值无效'); return; }
+      var ms = unit === 's' ? n * 1000 : n;
+      var d = new Date(ms);
+      if (isNaN(d.getTime())) { showError('无法解析该时间戳'); return; }
+      document.getElementById('dateOutput').value = formatLocalText(d);
+      document.getElementById('dateInput').value = formatLocalText(d);
+      document.getElementById('tsOutput').value = document.getElementById('tsUnitOut').value === 's' ? String(Math.floor(ms / 1000)) : String(ms);
+    }
+    function convertDateToTs() {
+      var textVal = document.getElementById('dateInput').value.trim();
+      var d = parseLocalText(textVal);
+      if (!d || isNaN(d.getTime())) { showError('请输入有效时间，如 2026-03-01 00:00:00'); return; }
+      var ms = d.getTime();
+      var unitOut = document.getElementById('tsUnitOut').value;
+      document.getElementById('tsOutput').value = unitOut === 's' ? String(Math.floor(ms / 1000)) : String(ms);
+      document.getElementById('tsInput').value = document.getElementById('tsUnit').value === 's' ? String(Math.floor(ms / 1000)) : String(ms);
+      document.getElementById('dateOutput').value = formatLocalText(d);
+    }
+
+    function fillNow() {
+      var now = new Date();
+      var ms = now.getTime();
+      document.getElementById('tsUnit').value = 'ms';
+      document.getElementById('tsInput').value = String(ms);
+      document.getElementById('dateInput').value = formatLocalText(now);
+      document.getElementById('dateOutput').value = formatLocalText(now);
+      document.getElementById('tsUnitOut').value = 's';
+      document.getElementById('tsOutput').value = String(Math.floor(ms / 1000));
+      try {
+        document.getElementById('tzLabel').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone || '北京时间';
+      } catch (_) {}
+    }
+
+    (function init() {
+      fillNow();
+      startNow();
+    })();
+  </script>
+{% endblock %}
